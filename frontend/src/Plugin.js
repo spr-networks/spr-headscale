@@ -205,6 +205,9 @@ export default function Plugin() {
       <ListHeader
         title="Headscale"
         description="Self-hosted Tailscale control server"
+        mark="hs"
+        status={status?.Running ? 'Running' : 'Stopped'}
+        statusAction={status?.Running ? 'success' : 'muted'}
       >
         <Button size="sm" variant="outline" onPress={restart}>
           <ButtonText>Restart</ButtonText>
