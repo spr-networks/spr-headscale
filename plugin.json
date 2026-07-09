@@ -1,0 +1,16 @@
+{
+  "Name": "spr-headscale",
+  "ComposeFilePath": "plugins/user/spr-headscale/docker-compose.yml",
+  "UnixPath": "/state/plugins/spr-headscale/socket",
+  "URI": "spr-headscale",
+  "HasUI": true,
+  "Icon": "BlocksIcon",
+  "SandboxedUI": false,
+  "InstallTokenPath": "/configs/plugins/spr-headscale/api-token",
+  "NetworkCapabilities": {
+    "Interface": "spr-headscale",
+    "Policies": ["wan", "dns", "lan"],
+    "Groups": ["headscale"]
+  },
+  "Enabled": true
+}
