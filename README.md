@@ -1,5 +1,7 @@
 # spr-headscale
 
+<img width="850" alt="spr-headscale UI preview" src="docs/screenshot.png" />
+
 Run [headscale](https://github.com/juanfont/headscale) — a self-hosted, open
 source implementation of the Tailscale control server — as an
 [SPR](https://github.com/spr-networks/super) plugin. Your tailnet's
