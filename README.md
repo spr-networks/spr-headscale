@@ -14,14 +14,17 @@ it, and adds a small REST API + web UI (embedded in the SPR interface under
 
 - **Headscale v0.29.2 built from source**, pinned to the release tag's full
   commit hash, reproducible container build
-- **Status card** — daemon state, version, server URL, node/user counts
-- **Users** — create / delete headscale users
-- **Preauth keys** — per-user generator (reusable / ephemeral / expiration);
-  the key value is displayed exactly once, in a copy-once modal, and only a
-  masked prefix is ever listed afterwards
-- **Nodes** — name, IPs, owner, online dot, last seen, expire / remove actions
+- **Overview** — daemon state, version, user/node/online tiles, copyable
+  server URL and join command; a guided first-run card walks through
+  server URL → user → key → join
+- **Users & keys** — create / delete users (with per-user node counts);
+  per-user preauth key generator (reusable / ephemeral / expiration); the key
+  value is displayed exactly once, in a copy-once modal together with the
+  prefilled join command, and only a masked prefix is ever listed afterwards
+- **Nodes** — online dot, name, owner, IPs, last seen; expire / remove behind
+  explicit confirmation dialogs
 - **Settings** — server URL, MagicDNS on/off + base domain, DERP relay map
-  on/off; config changes regenerate headscale's `config.yaml` and restart the
+  on/off; saving regenerates headscale's `config.yaml` and restarts the
   daemon
 - **Topology** — contributes its nodes (with online state and tailnet IPs) to
   SPR's router topology view via `GET /topology`
