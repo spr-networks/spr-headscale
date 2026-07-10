@@ -300,6 +300,7 @@ func setupRoutes() *http.ServeMux {
 	mux.HandleFunc("DELETE /nodes/{id}", handleDeleteNode)
 	mux.HandleFunc("POST /nodes/{id}/expire", handleExpireNode)
 	mux.HandleFunc("POST /restart", handleRestart)
+	mux.HandleFunc("GET /topology", handleGetTopology)
 	mux.Handle("/", spaHandler{staticPath: "/ui", indexPath: "index.html"})
 	return mux
 }

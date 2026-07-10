@@ -23,6 +23,8 @@ it, and adds a small REST API + web UI (embedded in the SPR interface under
 - **Settings** — server URL, MagicDNS on/off + base domain, DERP relay map
   on/off; config changes regenerate headscale's `config.yaml` and restart the
   daemon
+- **Topology** — contributes its nodes (with online state and tailnet IPs) to
+  SPR's router topology view via `GET /topology`
 - **No host ports.** headscale listens on the container IP `:8080` on the
   plugin's own docker bridge (`spr-headscale`); the management API is only
   reachable over the SPR plugin unix socket
@@ -101,6 +103,18 @@ auth) at `/plugins/spr-headscale/<path>`.
 | DELETE | `/nodes/{id}` | Delete node |
 | POST | `/nodes/{id}/expire` | Expire node key (forces re-authentication) |
 | POST | `/restart` | Regenerate config and restart the headscale daemon |
+| GET | `/topology` | Topology graph for SPR's network map — see below |
+
+### Topology
+
+`plugin.json` sets `"HasTopology": true`, so SPR merges this plugin's graph
+into the router-wide topology view. `GET /topology` returns
+`{"Nodes": [...], "Edges": [...]}` with one `Kind: "device"` node per
+headscale node (hostname, tailnet IP, live online state, `ConnType:
+"tailscale"`) plus the `root` anchor node SPR grafts the graph onto; each
+device has an edge toward `root` on the `tailscale` layer. When the headscale
+daemon is down the endpoint degrades to the bare root anchor instead of
+erroring.
 
 ## Configuration reference
 

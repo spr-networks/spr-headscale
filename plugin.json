@@ -5,6 +5,7 @@
   "URI": "spr-headscale",
   "HasUI": true,
   "Icon": "Network",
+  "HasTopology": true,
   "SandboxedUI": false,
   "InstallTokenPath": "/configs/plugins/spr-headscale/api-token",
   "NetworkCapabilities": {
