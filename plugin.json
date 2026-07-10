@@ -4,7 +4,7 @@
   "UnixPath": "/state/plugins/spr-headscale/socket",
   "URI": "spr-headscale",
   "HasUI": true,
-  "Icon": "BlocksIcon",
+  "Icon": "Network",
   "SandboxedUI": false,
   "InstallTokenPath": "/configs/plugins/spr-headscale/api-token",
   "NetworkCapabilities": {

@@ -26,5 +26,6 @@ services:
 # the Interface used for the /firewall/custom_interface rule in install.sh.
 networks:
   headscalenet:
+    name: spr-headscale
     driver_opts:
       com.docker.network.bridge.name: spr-headscale
