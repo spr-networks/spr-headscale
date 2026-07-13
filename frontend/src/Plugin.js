@@ -252,6 +252,16 @@ export default function Plugin() {
 
   useEffect(() => {
     refresh()
+    const statusTimer = setInterval(() => {
+      api
+        .get(`${BASE}/status`)
+        .then((value) => {
+          setStatus(value)
+          setFetchError(null)
+        })
+        .catch((err) => setFetchError(err?.message || 'backend unreachable'))
+    }, 5000)
+    return () => clearInterval(statusTimer)
   }, [])
 
   const copy = (text, message = 'Copied to clipboard') => {
@@ -295,7 +305,11 @@ export default function Plugin() {
         alert.success('Settings applied — headscale restarted')
         refresh()
       })
-      .catch((err) => alert.error('Failed to save settings', err))
+      .catch((err) => {
+        alert.error('Failed to save settings', err)
+        setTab('overview')
+        refresh()
+      })
       .finally(() => setSaving(false))
   }
 
@@ -307,7 +321,11 @@ export default function Plugin() {
         alert.success('headscale restarted')
         refresh()
       })
-      .catch((err) => alert.error('Restart failed', err))
+      .catch((err) => {
+        alert.error('Restart failed', err)
+        setTab('overview')
+        refresh()
+      })
       .finally(() => setRestarting(false))
   }
 
@@ -422,7 +440,15 @@ export default function Plugin() {
       description="Self-hosted Tailscale control server"
       mark="hs"
       status={fetchError ? 'Unreachable' : running ? 'Running' : 'Stopped'}
-      statusAction={fetchError ? 'error' : running ? 'success' : 'muted'}
+      statusAction={
+        fetchError
+          ? 'error'
+          : running
+          ? 'success'
+          : status?.LastError
+          ? 'error'
+          : 'muted'
+      }
     >
       <Button
         size="sm"
@@ -470,8 +496,8 @@ export default function Plugin() {
         <VStack flexShrink={1}>
           <Text bold>headscale is stopped</Text>
           <Text size="sm" color="$muted500">
-            Users, keys and nodes can't be managed until the daemon runs.
-            Check the server URL in Settings, then restart.
+            {status?.LastError ||
+              "Users, keys and nodes can't be managed until the daemon runs."}
           </Text>
         </VStack>
         <Button
@@ -487,6 +513,22 @@ export default function Plugin() {
   ) : null
 
   // ---- tabs
+
+  const daemonDiagnostics = status?.RecentLogs ? (
+    <Card tone={status?.LastError ? 'warning' : undefined}>
+      <SectionHeader title="Headscale logs" />
+      {status?.LastError ? (
+        <Text size="sm" color="$error600" mb="$3" selectable>
+          {status.LastError}
+        </Text>
+      ) : null}
+      <CodeBlock
+        text={status.RecentLogs}
+        onCopy={(value) => copy(value, 'Headscale logs copied')}
+        copyLabel="Copy logs"
+      />
+    </Card>
+  ) : null
 
   const overviewTab = (
     <>
@@ -519,10 +561,16 @@ export default function Plugin() {
           />
           <KeyVal
             label="DERP relays"
-            value={status?.DERPEnabled ? 'tailscale default map' : 'disabled'}
+            value={
+              status?.DERPEnabled
+                ? 'Tailscale public map'
+                : 'off — direct connections only'
+            }
           />
         </VStack>
       </Card>
+
+      {daemonDiagnostics}
 
       {firstRun ? (
         <Card>
@@ -820,8 +868,9 @@ export default function Plugin() {
           <VStack flex={1} pr="$4">
             <Text>DERP relays</Text>
             <Text size="xs" color="$muted500">
-              Use Tailscale's public relay map for NAT traversal help. Disable
-              for direct connections only.
+              Use Tailscale's public relay map for NAT traversal and fallback.
+              When off, the DERP URL list is empty and only direct connections
+              are available.
             </Text>
           </VStack>
           <Toggle

@@ -39,7 +39,7 @@ type Config struct {
 	// MagicDNS toggles headscale's magic_dns.
 	MagicDNS bool
 	// DERPEnabled selects the upstream default Tailscale DERP relay map.
-	// When false no DERP relays are configured (direct connections only).
+	// When false the URL list is empty (no Tailscale-provided DERP relays).
 	DERPEnabled bool
 }
 

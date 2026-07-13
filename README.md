@@ -16,9 +16,9 @@ it, and adds a small REST API + web UI (embedded in the SPR interface under
 
 - **Headscale v0.29.2 built from source**, pinned to the release tag's full
   commit hash, reproducible container build
-- **Overview** — daemon state, version, user/node/online tiles, copyable
-  server URL and join command; a guided first-run card walks through
-  server URL → user → key → join
+- **Overview** — daemon state, recent logs and startup errors, version,
+  user/node/online tiles, copyable server URL and join command; a guided
+  first-run card walks through server URL → user → key → join
 - **Users & keys** — create / delete users (with per-user node counts);
   per-user preauth key generator (reusable / ephemeral / expiration); the key
   value is displayed exactly once, in a copy-once modal together with the
@@ -96,7 +96,7 @@ auth) at `/plugins/spr-headscale/<path>`.
 
 | Method | Path | Description |
 | --- | --- | --- |
-| GET | `/status` | Daemon state, headscale version/commit, server URL, listen address |
+| GET | `/status` | Daemon state, bounded recent logs/startup error, headscale version/commit, server URL, listen address |
 | GET | `/config` | Plugin configuration (no secrets stored) |
 | PUT | `/config` | Validate + save config, regenerate `config.yaml`, restart headscale |
 | GET | `/users` | List users |
@@ -130,7 +130,7 @@ erroring.
 | `ServerURL` | `""` (derive `http://CONTAINER_IP:8080`) | headscale `server_url`; what clients dial. `http(s)://host[:port]` only |
 | `BaseDomain` | `headscale.internal` | MagicDNS base domain; must differ from the `ServerURL` host |
 | `MagicDNS` | `true` | Toggle headscale MagicDNS |
-| `DERPEnabled` | `true` | `true`: use Tailscale's default public DERP relay map; `false`: no relays (direct connections only). The embedded DERP server stays off (it would require TLS) |
+| `DERPEnabled` | `true` | `true`: use Tailscale's default public DERP relay map; `false`: set `derp.urls` to `[]` and advertise no default regions (direct connections only) |
 
 The headscale `config.yaml` is regenerated from a vendored template
 (`code/templates/config.yaml.tmpl`) on every start and config change — do not

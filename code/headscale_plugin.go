@@ -45,6 +45,8 @@ type StatusResponse struct {
 	MagicDNS      bool
 	BaseDomain    string
 	DERPEnabled   bool
+	LastError     string
+	RecentLogs    string
 }
 
 func handleStatus(w http.ResponseWriter, r *http.Request) {
@@ -53,22 +55,28 @@ func handleStatus(w http.ResponseWriter, r *http.Request) {
 	Configmtx.RUnlock()
 
 	ip := listenIP()
+	running := gDaemon.Running()
+	lastError, recentLogs := gDaemon.Diagnostics()
 	status := StatusResponse{
-		Running:       gDaemon.Running(),
+		Running:       running,
 		PinnedVersion: PinnedHeadscaleVersion,
 		ListenAddr:    ip + ":8080",
 		ContainerIP:   ip,
 		MagicDNS:      cfg.MagicDNS,
 		BaseDomain:    cfg.BaseDomain,
 		DERPEnabled:   cfg.DERPEnabled,
+		LastError:     lastError,
+		RecentLogs:    recentLogs,
 	}
 	status.ServerURL = cfg.ServerURL
 	if status.ServerURL == "" {
 		status.ServerURL = "http://" + ip + ":8080"
 	}
-	if v, err := cliVersion(r.Context()); err == nil {
-		status.Version = v.Version
-		status.Commit = v.Commit
+	if running {
+		if v, err := cliVersion(r.Context()); err == nil {
+			status.Version = v.Version
+			status.Commit = v.Commit
+		}
 	}
 	jsonOK(w, status)
 }

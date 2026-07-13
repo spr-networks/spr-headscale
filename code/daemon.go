@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -17,12 +18,49 @@ import (
 
 var HeadscaleBin = "headscale"
 
+const (
+	maxDaemonLogBytes = 16 * 1024
+	startupProbeDelay = 300 * time.Millisecond
+)
+
+// boundedLog keeps only the most recent daemon output so diagnostics can be
+// returned by the plugin API without allowing an unbounded in-memory log.
+type boundedLog struct {
+	mtx sync.Mutex
+	buf []byte
+}
+
+func (b *boundedLog) Write(p []byte) (int, error) {
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+	b.buf = append(b.buf, p...)
+	if len(b.buf) > maxDaemonLogBytes {
+		b.buf = append([]byte(nil), b.buf[len(b.buf)-maxDaemonLogBytes:]...)
+	}
+	return len(p), nil
+}
+
+func (b *boundedLog) Reset() {
+	b.mtx.Lock()
+	b.buf = nil
+	b.mtx.Unlock()
+}
+
+func (b *boundedLog) String() string {
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+	return strings.TrimSpace(string(b.buf))
+}
+
 // Daemon supervises the headscale server child process.
 type Daemon struct {
 	mtx        sync.Mutex
 	cmd        *exec.Cmd
+	done       <-chan struct{}
 	generation int
 	stopped    bool
+	lastError  string
+	output     boundedLog
 }
 
 var gDaemon = &Daemon{}
@@ -74,43 +112,80 @@ func (d *Daemon) startLocked() error {
 		return err
 	}
 	if err := writeHeadscaleConfig(cfg, listenIP()); err != nil {
+		d.lastError = err.Error()
 		return err
 	}
 
+	d.output.Reset()
+	d.lastError = ""
 	cmd := exec.Command(HeadscaleBin, "serve", "--config", HeadscaleConfigFile)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = io.MultiWriter(os.Stdout, &d.output)
+	cmd.Stderr = io.MultiWriter(os.Stderr, &d.output)
 	cmd.Env = append(os.Environ(), "NO_COLOR=1")
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("starting headscale: %v", err)
+		d.lastError = fmt.Sprintf("starting headscale: %v", err)
+		return fmt.Errorf("%s", d.lastError)
 	}
 	d.cmd = cmd
 	d.stopped = false
 	d.generation++
 	gen := d.generation
+	done := make(chan struct{})
+	d.done = done
 	log.Printf("headscale started (pid %d)", cmd.Process.Pid)
 
 	go enforceKeyPerms()
 	go func() {
 		err := cmd.Wait()
-		d.mtx.Lock()
-		if d.generation != gen || d.stopped {
-			d.mtx.Unlock()
-			return
-		}
-		d.cmd = nil
-		d.mtx.Unlock()
-		log.Printf("headscale exited unexpectedly: %v; restarting in 5s", err)
-		time.Sleep(5 * time.Second)
-		d.mtx.Lock()
-		defer d.mtx.Unlock()
-		if d.generation == gen && !d.stopped {
-			if err := d.startLocked(); err != nil {
-				log.Printf("headscale restart failed: %v", err)
-			}
-		}
+		close(done)
+		d.handleExit(gen, err)
 	}()
+
+	// Headscale validates some runtime state only after the process starts.
+	// Catch fast failures so config/restart API calls return the real error.
+	select {
+	case <-done:
+		d.recordExitLocked(fmt.Errorf("%v", cmd.ProcessState))
+		return fmt.Errorf("headscale failed to start: %s", d.lastError)
+	case <-time.After(startupProbeDelay):
+	}
 	return nil
+}
+
+func (d *Daemon) handleExit(gen int, waitErr error) {
+	d.mtx.Lock()
+	if d.generation != gen || d.stopped {
+		d.mtx.Unlock()
+		return
+	}
+	d.recordExitLocked(waitErr)
+	d.mtx.Unlock()
+
+	log.Printf("headscale exited unexpectedly: %v; restarting in 5s", waitErr)
+	time.Sleep(5 * time.Second)
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	if d.generation == gen && !d.stopped {
+		if err := d.startLocked(); err != nil {
+			log.Printf("headscale restart failed: %v", err)
+		}
+	}
+}
+
+func (d *Daemon) recordExitLocked(waitErr error) {
+	d.cmd = nil
+	d.done = nil
+	lines := strings.Split(d.output.String(), "\n")
+	for i := len(lines) - 1; i >= 0; i-- {
+		line := strings.TrimSpace(lines[i])
+		if line != "" {
+			d.lastError = line
+			break
+		}
+	}
+	if d.lastError == "" {
+		d.lastError = fmt.Sprintf("headscale exited: %v", waitErr)
+	}
 }
 
 func (d *Daemon) stopLocked() {
@@ -118,19 +193,18 @@ func (d *Daemon) stopLocked() {
 	d.generation++
 	if d.cmd != nil && d.cmd.Process != nil {
 		proc := d.cmd.Process
+		done := d.done
 		proc.Signal(syscall.SIGTERM)
-		done := make(chan struct{})
-		go func() {
-			d.cmd.Wait()
-			close(done)
-		}()
-		select {
-		case <-done:
-		case <-time.After(10 * time.Second):
-			proc.Kill()
+		if done != nil {
+			select {
+			case <-done:
+			case <-time.After(10 * time.Second):
+				proc.Kill()
+			}
 		}
 	}
 	d.cmd = nil
+	d.done = nil
 }
 
 // Restart stops headscale (if running), regenerates config.yaml and starts it again.
@@ -153,6 +227,13 @@ func (d *Daemon) Running() bool {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	return d.cmd != nil && d.cmd.Process != nil && d.cmd.ProcessState == nil
+}
+
+// Diagnostics returns the most recent process error and bounded daemon log.
+func (d *Daemon) Diagnostics() (string, string) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	return d.lastError, d.output.String()
 }
 
 // enforceKeyPerms tightens the noise private key mode once headscale has
