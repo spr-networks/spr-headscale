@@ -1,6 +1,6 @@
 {
   "Name": "spr-headscale",
-  "ComposeFilePath": "plugins/user/spr-headscale/docker-compose-krun.yml",
+  "Runtime": "kvm",
   "UnixPath": "/state/plugins/spr-headscale/socket",
   "URI": "spr-headscale",
   "HasUI": true,
