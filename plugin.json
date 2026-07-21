@@ -9,7 +9,7 @@
   "SandboxedUI": false,
   "InstallTokenPath": "/configs/plugins/spr-headscale/api-token",
   "NetworkCapabilities": {
-    "Interface": "kheadscale0",
+    "Interface": "spr-headscale",
     "DeviceMAC": "02:53:50:52:4b:07",
     "Policies": ["wan", "dns", "lan"],
     "Groups": ["headscale"]
