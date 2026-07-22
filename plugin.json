@@ -6,7 +6,7 @@
   "HasUI": true,
   "Icon": "Network",
   "HasTopology": true,
-  "SandboxedUI": false,
+  "SandboxedUI": true,
   "NetworkCapabilities": {
     "Interface": "spr-headscale",
     "DeviceMAC": "02:53:50:52:4b:07",
