@@ -95,6 +95,7 @@ func handlePutConfig(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "invalid JSON: "+err.Error(), 400)
 		return
 	}
+	cfg.DERPEnabled = true
 	if err := validateConfig(&cfg); err != nil {
 		jsonError(w, err.Error(), 400)
 		return

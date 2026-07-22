@@ -130,7 +130,7 @@ erroring.
 | `ServerURL` | `""` (derive `http://CONTAINER_IP:8080`) | headscale `server_url`; what clients dial. `http(s)://host[:port]` only |
 | `BaseDomain` | `headscale.internal` | MagicDNS base domain; must differ from the `ServerURL` host |
 | `MagicDNS` | `true` | Toggle headscale MagicDNS |
-| `DERPEnabled` | `true` | `true`: use Tailscale's default public DERP relay map; `false`: set `derp.urls` to `[]` and advertise no default regions (direct connections only) |
+| `DERPEnabled` | `true` | Compatibility field that is always normalized to `true`; Headscale requires at least one initial DERP map, so the Tailscale public map cannot be disabled without configuring another map source |
 
 The headscale `config.yaml` is regenerated from a vendored template
 (`code/templates/config.yaml.tmpl`) on every start and config change — do not

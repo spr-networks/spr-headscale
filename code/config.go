@@ -37,9 +37,7 @@ type Config struct {
 	// BaseDomain is the MagicDNS base domain (must differ from the ServerURL host).
 	BaseDomain string
 	// MagicDNS toggles headscale's magic_dns.
-	MagicDNS bool
-	// DERPEnabled selects the upstream default Tailscale DERP relay map.
-	// When false the URL list is empty (no Tailscale-provided DERP relays).
+	MagicDNS    bool
 	DERPEnabled bool
 }
 
@@ -178,6 +176,11 @@ func loadConfig() error {
 	if err := validateConfig(&cfg); err != nil {
 		return err
 	}
+	if !cfg.DERPEnabled {
+		cfg.DERPEnabled = true
+		gConfig = cfg
+		return writeConfigLocked()
+	}
 	gConfig = cfg
 	return nil
 }
@@ -234,7 +237,7 @@ func renderHeadscaleConfig(cfg Config, listenIP string) ([]byte, error) {
 		ListenAddr:   listenIP + ":8080",
 		BaseDomain:   cfg.BaseDomain,
 		MagicDNS:     cfg.MagicDNS,
-		DERPEnabled:  cfg.DERPEnabled,
+		DERPEnabled:  true,
 		NoiseKeyPath: NoiseKeyPath,
 		DBPath:       HeadscaleDBPath,
 		SocketPath:   HeadscaleSocketPath,

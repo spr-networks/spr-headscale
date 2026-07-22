@@ -2,9 +2,54 @@ package main
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestLoadConfigMigratesLegacyDERPOff(t *testing.T) {
+	oldConfigFile := ConfigFile
+	oldConfig := gConfig
+	t.Cleanup(func() {
+		ConfigFile = oldConfigFile
+		gConfig = oldConfig
+	})
+
+	ConfigFile = filepath.Join(t.TempDir(), "config.json")
+	legacy := Config{
+		BaseDomain:  "headscale.internal",
+		MagicDNS:    true,
+		DERPEnabled: false,
+	}
+	data, err := json.Marshal(legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(ConfigFile, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	gConfig = defaultConfig()
+	if err := loadConfig(); err != nil {
+		t.Fatal(err)
+	}
+	if !gConfig.DERPEnabled {
+		t.Fatal("legacy DERP-disabled configuration was not migrated")
+	}
+
+	persisted, err := os.ReadFile(ConfigFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got Config
+	if err := json.Unmarshal(persisted, &got); err != nil {
+		t.Fatal(err)
+	}
+	if !got.DERPEnabled {
+		t.Fatal("migrated DERP setting was not persisted")
+	}
+}
 
 func TestValidateServerURL(t *testing.T) {
 	good := map[string]string{
@@ -148,7 +193,7 @@ func TestRenderHeadscaleConfig(t *testing.T) {
 	}
 }
 
-func TestRenderHeadscaleConfigDefaultsAndDERPOff(t *testing.T) {
+func TestRenderHeadscaleConfigMigratesLegacyDERPOff(t *testing.T) {
 	cfg := Config{MagicDNS: false, DERPEnabled: false}
 	data, err := renderHeadscaleConfig(cfg, "100.64.10.2")
 	if err != nil {
@@ -158,16 +203,13 @@ func TestRenderHeadscaleConfigDefaultsAndDERPOff(t *testing.T) {
 	for _, want := range []string{
 		`server_url: "http://100.64.10.2:8080"`, // derived from container IP
 		"magic_dns: false",
-		"urls: []",
-		"auto_update_enabled: false",
+		"- https://controlplane.tailscale.com/derpmap/default",
+		"auto_update_enabled: true",
 		`base_domain: "headscale.internal"`,
 	} {
 		if !strings.Contains(yaml, want) {
 			t.Errorf("rendered config missing %q\n---\n%s", want, yaml)
 		}
-	}
-	if strings.Contains(yaml, "controlplane.tailscale.com") {
-		t.Error("DERP disabled but upstream DERP map still present")
 	}
 }
 
