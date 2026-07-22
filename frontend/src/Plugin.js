@@ -198,7 +198,6 @@ export default function Plugin() {
   const [serverURL, setServerURL] = useState('')
   const [baseDomain, setBaseDomain] = useState('')
   const [magicDNS, setMagicDNS] = useState(true)
-  const [derpEnabled, setDerpEnabled] = useState(true)
   const [saving, setSaving] = useState(false)
 
   // users
@@ -241,7 +240,6 @@ export default function Plugin() {
         setServerURL(c.value.ServerURL || '')
         setBaseDomain(c.value.BaseDomain || '')
         setMagicDNS(!!c.value.MagicDNS)
-        setDerpEnabled(!!c.value.DERPEnabled)
       }
       if (u.status === 'fulfilled') setUsers(u.value || [])
       if (n.status === 'fulfilled') setNodes(n.value || [])
@@ -289,8 +287,7 @@ export default function Plugin() {
     !!config &&
     (serverURL.trim() !== (config.ServerURL || '') ||
       baseDomain.trim() !== (config.BaseDomain || '') ||
-      magicDNS !== !!config.MagicDNS ||
-      derpEnabled !== !!config.DERPEnabled)
+      magicDNS !== !!config.MagicDNS)
 
   const saveConfig = () => {
     setSaving(true)
@@ -299,7 +296,7 @@ export default function Plugin() {
         ServerURL: serverURL.trim(),
         BaseDomain: baseDomain.trim(),
         MagicDNS: magicDNS,
-        DERPEnabled: derpEnabled
+        DERPEnabled: true
       })
       .then(() => {
         alert.success('Settings applied — headscale restarted')
@@ -866,18 +863,13 @@ export default function Plugin() {
         </HStack>
         <HStack justifyContent="space-between" alignItems="center">
           <VStack flex={1} pr="$4">
-            <Text>DERP relays</Text>
+            <Text>DERP relays (required)</Text>
             <Text size="xs" color="$muted500">
-              Use Tailscale's public relay map for NAT traversal and fallback.
-              When off, the DERP URL list is empty and only direct connections
-              are available.
+              Headscale requires a non-empty initial DERP map. Tailscale's
+              public relay map is used for NAT traversal and fallback.
             </Text>
           </VStack>
-          <Toggle
-            value={derpEnabled}
-            label="DERP relays"
-            onPress={() => setDerpEnabled(!derpEnabled)}
-          />
+          <Text size="sm">On</Text>
         </HStack>
         <HStack
           justifyContent="space-between"

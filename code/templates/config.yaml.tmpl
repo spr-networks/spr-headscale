@@ -30,14 +30,10 @@ derp:
   server:
     # Embedded DERP is off (it would require TLS on server_url).
     enabled: false
-{{- if .DERPEnabled }}
   urls:
     - https://controlplane.tailscale.com/derpmap/default
-{{- else }}
-  urls: []
-{{- end }}
   paths: []
-  auto_update_enabled: {{ .DERPEnabled }}
+  auto_update_enabled: true
   update_frequency: 3h
 
 disable_check_updates: true
