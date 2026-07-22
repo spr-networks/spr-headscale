@@ -13,7 +13,7 @@ import (
 	"syscall"
 )
 
-var UNIX_PLUGIN_LISTENER = "/state/plugins/spr-headscale/socket"
+var UNIX_PLUGIN_LISTENER = "/run/spr-krun-plugin/spr-headscale.sock"
 
 // PinnedHeadscaleVersion is stamped at build time via -ldflags from
 // HEADSCALE_VERSION in reproducible.env.
