@@ -1,7 +1,7 @@
 {
   "Name": "spr-headscale",
   "Runtime": "kvm",
-  "UnixPath": "/state/plugins/spr-headscale/socket",
+  "UnixPath": "/state/plugins/spr-headscale/socket.sock",
   "URI": "spr-headscale",
   "HasUI": true,
   "Icon": "Network",

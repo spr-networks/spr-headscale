@@ -37,7 +37,7 @@ it, and adds a small REST API + web UI (embedded in the SPR interface under
 ## How it integrates with SPR
 
 SPR proxies `/plugins/spr-headscale/…` to the plugin's unix socket at
-`/state/plugins/spr-headscale/socket` and embeds the UI (served from the same
+`/state/plugins/spr-headscale/socket.sock` and embeds the UI (served from the same
 socket) as an iframe under **Plugins → spr-headscale**. The headscale daemon
 itself is only exposed on the `spr-headscale` docker bridge; SPR policies
 decide who can reach it.
