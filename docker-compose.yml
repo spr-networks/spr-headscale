@@ -9,7 +9,7 @@ x-labels:
 services:
   spr-headscale:
     container_name: spr-headscale
-    image: ghcr.io/spr-networks/spr-headscale:${RELEASE_VERSION:-latest}${RELEASE_CHANNEL:-}
+    image: ghcr.io/spr-networks/spr-headscale:latest
     build:
       context: "${BUILDCTX:-.}"
       labels: *default-labels
